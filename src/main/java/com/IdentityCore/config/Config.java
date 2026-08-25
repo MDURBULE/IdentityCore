@@ -7,14 +7,18 @@ import com.master.DBHandler.Chache.CacheHandler;
 import com.master.DBHandler.SQL.DBHandler;
 
 public final class Config {
-    private static final Logger lgr =
-            LogManager.getLogger(Config.class);
+    private static Logger lgr;
     private static ConfigProperties cpx;
     private static DBHandler dbHandler;
     private static CacheHandler cacheHandler;
 
+    private Config(){
+        
+    }
+
     public static final void initializeConfig(ConfigProperties cp){
         cpx = cp;
+        lgr = LogManager.getLogger(cp.getAppName());
         initializeDB(cp.getDbFilePath());
         initializeCache(cp.getCacheFilePath());
     }
