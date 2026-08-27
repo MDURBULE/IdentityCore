@@ -15,6 +15,8 @@ import com.IdentityCore.model.response.RegisterResponse;
 import com.IdentityCore.model.response.StatusResponse;
 import com.IdentityCore.service.Interface.AuthService;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 @RestController
 @RequestMapping("/v1/auth")
 public class AuthController {
@@ -26,7 +28,8 @@ public class AuthController {
     }
     
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request){
+    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request,HttpServletRequest req){
+        authService.registerUser(null, null, null, null, null);
         return ResponseEntity.ok(null);
     }
 

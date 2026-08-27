@@ -1,4 +1,4 @@
-package com.IdentityCore.model.constant;
+package com.IdentityCore.model.objectvalues;
 
 import java.util.Objects;
 import java.util.regex.Pattern;
