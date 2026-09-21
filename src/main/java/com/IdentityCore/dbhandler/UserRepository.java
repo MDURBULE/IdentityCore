@@ -8,10 +8,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.stereotype.Service;
+
 import com.IdentityCore.config.Config;
 import com.IdentityCore.model.constant.UserStatus;
 import com.IdentityCore.model.entity.User;
 
+@Service
 public class UserRepository {
 
     public Map<String, Object> registerUser(String rawEmail, String email, String password, String ipaddress,
@@ -63,6 +66,11 @@ public class UserRepository {
     }
 
     public Optional<User> findByNormalizedEmail(String normalizedEmail) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'findByNormalizedEmail'");
+    }
+
+    public Optional<User> findById(Long id){
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'findByNormalizedEmail'");
     }

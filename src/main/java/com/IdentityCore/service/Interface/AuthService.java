@@ -1,13 +1,17 @@
 package com.IdentityCore.service.Interface;
 
+import com.IdentityCore.model.request.RegisterRequest;
+
 public interface AuthService {
-    public RegisterResult registerUser(String rawEmail, String rawPassword, String ipAddress, String userAgent, String baseUrl);
+    public RegisterResult registerUser(RegisterRequest request, String ipAddress, String userAgent, String baseUrl);
 
-    public AuthResult login(String rawEmail, String rawPassword, String clientId, String deviceName, String ipAddress, String userAgent);
+    public LoginResult login(String rawEmail, String rawPassword, String clientId, String deviceName, String ipAddress, String userAgent);
 
-    public AuthResult refreshToken(String incomingRefreshToken, String clientId, String ipAddress, String userAgent);
+    public RefreshResult refreshToken(String incomingRefreshToken, String clientId, String ipAddress, String userAgent);
 
 
-    public record RegisterResult(String publicId,String email,String status) {}
-    public record AuthResult(String publicId, String accessToken, String refreshToken, String sessionId, boolean mfaRequired) {}
+    public record RegisterResult(String publicId, String email, String status) {}
+    public record LoginResult(String publicId, String accessToken, String refreshToken, String sessionId, boolean mfaRequired) {}
+    public record RefreshResult(String accessToken, String refreshToken, String sessionId) {}
+    
 }

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.IdentityCore.config.Config;
 import com.IdentityCore.model.request.LoginRequest;
 import com.IdentityCore.model.request.RefreshTokenRequest;
 import com.IdentityCore.model.request.RegisterRequest;
@@ -23,45 +24,61 @@ public class AuthController {
 
     private final AuthService authService;
 
-    public AuthController(AuthService authService){
+    public AuthController(AuthService authService) {
         this.authService = authService;
     }
-    
+
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request,HttpServletRequest req){
-        authService.registerUser(null, null, null, null, null);
-        return ResponseEntity.ok(null);
+    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request, HttpServletRequest req) {
+        AuthService.RegisterResult result = authService.registerUser(request, null, null, null);
+
+        return ResponseEntity.ok(new RegisterResponse(
+                result.publicId(),
+                result.email(),
+                result.status(),
+                "Registration successful. Please check your email to verify your account."));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request){
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request,HttpServletRequest req) {
+        AuthService.LoginResult result = authService.login(
+                request.email(),
+                request.password(),
+                request.clientId() != null ? request.clientId() : Config.getCpx().getAppName(),
+                "Browser",
+
+                req.getRemoteAddr(),
+                req.getHeader("User-Agent"));
         return ResponseEntity.ok(null);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshTokenRequest request){
+    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(null);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<StatusResponse> logout(@RequestBody AuthenticatedPrincipal request){
+    public ResponseEntity<StatusResponse> logout(@RequestBody AuthenticatedPrincipal request) {
         return ResponseEntity.ok(null);
     }
 
     @PostMapping("/email/send-verification")
-    public ResponseEntity<AuthResponse> sendverification(@RequestBody AuthenticatedPrincipal request){
+    public ResponseEntity<AuthResponse> sendverification(@RequestBody AuthenticatedPrincipal request) {
         return ResponseEntity.ok(null);
     }
+
     @PostMapping("/email/verify")
-    public ResponseEntity<AuthResponse> verifyEmail(@RequestBody AuthenticatedPrincipal request){
+    public ResponseEntity<AuthResponse> verifyEmail(@RequestBody AuthenticatedPrincipal request) {
         return ResponseEntity.ok(null);
     }
+
     @PostMapping("/password/forgot")
-    public ResponseEntity<AuthResponse> forgotPassword(@RequestBody AuthenticatedPrincipal request){
+    public ResponseEntity<AuthResponse> forgotPassword(@RequestBody AuthenticatedPrincipal request) {
         return ResponseEntity.ok(null);
     }
+
     @PostMapping("/password/reset")
-    public ResponseEntity<AuthResponse> resetPassword(@RequestBody AuthenticatedPrincipal request){
+    public ResponseEntity<AuthResponse> resetPassword(@RequestBody AuthenticatedPrincipal request) {
         return ResponseEntity.ok(null);
     }
 }
