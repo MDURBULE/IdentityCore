@@ -8,6 +8,7 @@ import com.IdentityCore.model.response.HealthResponse;
 
 @RestController
 public class WellKnownController {
+    
     @GetMapping("/health")
     public ResponseEntity<HealthResponse> health() {
         return ResponseEntity.ok(new HealthResponse("UP"));
