@@ -76,14 +76,26 @@ public final class Config {
     }
 
     public static boolean setRedisKey(String key,String data){
+        return setRedisKeyWithTtl(key, data, 60 * 60);
+    }
+
+    public static boolean setRedisKeyWithTtl(String key, String data, long seconds) {
         boolean flag = false;
-        try(Jedis chache = cacheHandler.getResource()){
-            chache.setex(key, 60*60, data);
+        try (Jedis chache = cacheHandler.getResource()) {
+            chache.setex(key, seconds, data);
             flag = true;
-        }catch(Exception e){
+        } catch (Exception e) {
             return false;
         }
         return flag;
+    }
+
+    public static boolean deleteRedisKey(String key) {
+        try (Jedis chache = cacheHandler.getResource()) {
+            return chache.del(key) > 0;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public static boolean isRedisKeyPresent(String key){

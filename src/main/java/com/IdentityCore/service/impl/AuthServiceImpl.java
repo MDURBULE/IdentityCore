@@ -24,15 +24,19 @@ import com.IdentityCore.service.Interface.UserService;
 @Service
 public class AuthServiceImpl implements AuthService {
 
-    UserRepository userRepository;
-    UserService userService;
-    TokenService tokenService;
-    PasswordService passwordService;
-    CredentialRepository credentialRepository;
-    SecurityEventRepository securityEventRepository;
+    private final UserRepository userRepository;
+    private final UserService userService;
+    private final TokenService tokenService;
+    private final PasswordService passwordService;
+    private final CredentialRepository credentialRepository;
+    private final SecurityEventRepository securityEventRepository;
 
-    public AuthServiceImpl(UserRepository userRepository, UserService userService, TokenService tokenService,
-            PasswordService passwordService,CredentialRepository credentialRepository,SecurityEventRepository securityEventRepository) {
+    public AuthServiceImpl(UserRepository userRepository,
+                           UserService userService,
+                           TokenService tokenService,
+                           PasswordService passwordService,
+                           CredentialRepository credentialRepository,
+                           SecurityEventRepository securityEventRepository) {
         this.userRepository = userRepository;
         this.userService = userService;
         this.tokenService = tokenService;
@@ -45,18 +49,38 @@ public class AuthServiceImpl implements AuthService {
     public RegisterResult registerUser(RegisterRequest request, String ipAddress, String userAgent,
             String baseUrl) {
         Email email = Email.of(request.getEmail());
-        String haspassward = passwordService.hashPassword(request.getPassword());// password hashing
+        String hashedPassword = passwordService.hashPassword(request.getPassword());
 
-        Map<String, Object> procResult = userRepository.registerUser(email.getRawEmail(), email.getNormalizedEmail(),
-                haspassward, ipAddress, userAgent);
-        Long userId = (Long) procResult.get("p_user_id");
-        UUID publicId = (UUID) procResult.get("p_public_id");
-        String statusStr = (String) procResult.get("p_status");
+        Map<String, Object> procResult = userRepository.registerUser(
+                email.getRawEmail(),
+                email.getNormalizedEmail(),
+                hashedPassword,
+                request.getFirstName(),
+                request.getLastName(),
+                request.getPhoneNumber(),
+                ipAddress,
+                userAgent);
 
-        // send notification
+        if (Boolean.FALSE.equals(procResult.get("success"))) {
+            String error = (String) procResult.get("error");
+            if ("EMAIL_ALREADY_EXISTS".equals(error)) {
+                throw new IllegalArgumentException("EMAIL_ALREADY_EXISTS");
+            }
+            throw new RuntimeException("Registration failed: " + error);
+        }
+
+        Long userId = (Long) procResult.get("userId");
+        UUID publicId = (UUID) procResult.get("publicId");
+        String statusStr = (String) procResult.get("status");
+
         User user = new User(userId, publicId, email.getRawEmail(), email.getNormalizedEmail(),
+                request.getFirstName(), request.getLastName(), request.getPhoneNumber(), null,
                 UserStatus.valueOf(statusStr), false, null, null, null);
+
         userService.sendEmailVerification(user, baseUrl);
+
+        securityEventRepository.recordSecurityEvent(userId, "USER_REGISTERED", ipAddress, userAgent, null,
+                "{\"email\":\"" + email.getRawEmail() + "\"}");
 
         return new RegisterResult(publicId.toString(), email.getRawEmail(), statusStr);
     }
@@ -67,27 +91,41 @@ public class AuthServiceImpl implements AuthService {
         Email email = Email.of(rawEmail);
         Optional<User> optUser = userRepository.findByNormalizedEmail(email.getNormalizedEmail());
         if (optUser.isEmpty()) {
+            securityEventRepository.recordSecurityEvent(null, "LOGIN_FAILED", ipAddress, userAgent, clientId,
+                    "{\"reason\":\"USER_NOT_FOUND\",\"email\":\"" + rawEmail + "\"}");
             throw new IllegalArgumentException("INVALID_CREDENTIALS");
         }
 
         User user = optUser.get();
-        if (user.getStatus() != UserStatus.ACTIVE && user.getStatus() != UserStatus.PENDING_VERIFICATION) {
-            throw new IllegalArgumentException("ACCOUNT_INACTIVE");
+        if (user.getStatus() == UserStatus.LOCKED || user.getStatus() == UserStatus.DISABLED || user.getStatus() == UserStatus.DELETED) {
+            securityEventRepository.recordSecurityEvent(user.getId(), "LOGIN_BLOCKED", ipAddress, userAgent, clientId,
+                    "{\"status\":\"" + user.getStatus() + "\"}");
+            throw new IllegalArgumentException("ACCOUNT_" + user.getStatus());
         }
 
-        // add-implement passward / credencial check
         Optional<Credential> credOpt = credentialRepository.findByUserIdAndType(user.getId(), CredentialType.PASSWORD);
         if (credOpt.isEmpty() || !passwordService.verifyPassword(rawPassword, credOpt.get().getSecretHash())) {
             securityEventRepository.recordSecurityEvent(user.getId(), "LOGIN_FAILED", ipAddress, userAgent, clientId,
                     "{\"reason\":\"PASSWORD_MISMATCH\"}");
             throw new IllegalArgumentException("INVALID_CREDENTIALS");
         }
-        // add-implement mfa check
 
-        TokenService.RefreshTokenIssueResult refreshIssue = tokenService.issueInitialRefreshToken(user.getId(),
-                deviceName, ipAddress, userAgent);
-        String accessToken = tokenService.generateAccessToken(user.getPublicId().toString(), clientId,
-                refreshIssue.sessionId(), Set.of("openid", "profile", "email"));
+        userRepository.updateLastLogin(user.getId());
+
+        TokenService.RefreshTokenIssueResult refreshIssue = tokenService.issueInitialRefreshToken(
+                user.getId(),
+                deviceName,
+                ipAddress,
+                userAgent);
+
+        String accessToken = tokenService.generateAccessToken(
+                user.getPublicId().toString(),
+                clientId,
+                refreshIssue.sessionId(),
+                Set.of("openid", "profile", "email"));
+
+        securityEventRepository.recordSecurityEvent(user.getId(), "LOGIN_SUCCESS", ipAddress, userAgent, clientId,
+                "{\"sessionId\":\"" + refreshIssue.sessionId() + "\"}");
 
         return new LoginResult(user.getPublicId().toString(), accessToken, refreshIssue.rawRefreshToken(),
                 refreshIssue.sessionId(), false);
@@ -96,8 +134,13 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public RefreshResult refreshToken(String incomingRefreshToken, String clientId, String ipAddress,
             String userAgent) {
-        Optional<TokenService.RefreshTokenRotationResult> rotOpt = tokenService.rotateRefreshToken(incomingRefreshToken,
-                ipAddress, userAgent, null, null);
+        Optional<TokenService.RefreshTokenRotationResult> rotOpt = tokenService.rotateRefreshToken(
+                incomingRefreshToken,
+                ipAddress,
+                userAgent,
+                null,
+                null);
+
         if (rotOpt.isEmpty()) {
             throw new IllegalArgumentException("INVALID_REFRESH_TOKEN");
         }
@@ -106,10 +149,12 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findById(rot.userId())
                 .orElseThrow(() -> new IllegalStateException("USER_NOT_FOUND"));
 
-        String newAccessToken = tokenService.generateAccessToken(user.getPublicId().toString(), clientId,
-                rot.sessionId(), Set.of("openid", "profile", "email"));
+        String newAccessToken = tokenService.generateAccessToken(
+                user.getPublicId().toString(),
+                clientId,
+                rot.sessionId(),
+                Set.of("openid", "profile", "email"));
 
         return new RefreshResult(newAccessToken, rot.newRawRefreshToken(), rot.sessionId());
     }
-
 }

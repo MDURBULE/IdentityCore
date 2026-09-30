@@ -10,6 +10,10 @@ public class User {
     private UUID publicId;
     private String email;
     private String normalizedEmail;
+    private String firstName;
+    private String lastName;
+    private String phoneNumber;
+    private String avatarUrl;
     private UserStatus status;
     private boolean emailVerified;
     private Instant createdAt;
@@ -23,6 +27,22 @@ public class User {
         this.publicId = publicId;
         this.email = email;
         this.normalizedEmail = normalizedEmail;
+        this.status = status;
+        this.emailVerified = emailVerified;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
+        this.lastLoginAt = lastLoginAt;
+    }
+
+    public User(Long id, UUID publicId, String email, String normalizedEmail, String firstName, String lastName, String phoneNumber, String avatarUrl, UserStatus status, boolean emailVerified, Instant createdAt, Instant updatedAt, Instant lastLoginAt) {
+        this.id = id;
+        this.publicId = publicId;
+        this.email = email;
+        this.normalizedEmail = normalizedEmail;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.phoneNumber = phoneNumber;
+        this.avatarUrl = avatarUrl;
         this.status = status;
         this.emailVerified = emailVerified;
         this.createdAt = createdAt;
@@ -60,6 +80,38 @@ public class User {
 
     public void setNormalizedEmail(String normalizedEmail) {
         this.normalizedEmail = normalizedEmail;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 
     public UserStatus getStatus() {
@@ -101,10 +153,4 @@ public class User {
     public void setLastLoginAt(Instant lastLoginAt) {
         this.lastLoginAt = lastLoginAt;
     }
-
-    public User orElseThrow(Object object) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'orElseThrow'");
-    }
 }
-

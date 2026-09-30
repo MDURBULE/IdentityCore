@@ -21,10 +21,12 @@ import com.IdentityCore.model.response.RegisterResponse;
 import com.IdentityCore.model.response.StatusResponse;
 import com.IdentityCore.service.Interface.AuthService;
 import com.IdentityCore.service.Interface.PasswordService;
+import com.IdentityCore.service.Interface.TokenService;
 import com.IdentityCore.service.Interface.UserService;
 import com.IdentityCore.utils.Utilities;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/v1/auth")
@@ -33,15 +35,20 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
     private final PasswordService passwordService;
+    private final TokenService tokenService;
 
-    public AuthController(AuthService authService, UserService userService, PasswordService passwordService) {
+    public AuthController(AuthService authService,
+                          UserService userService,
+                          PasswordService passwordService,
+                          TokenService tokenService) {
         this.authService = authService;
         this.userService = userService;
         this.passwordService = passwordService;
+        this.tokenService = tokenService;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request, HttpServletRequest req) {
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest req) {
         AuthService.RegisterResult result = authService.registerUser(request, req.getRemoteAddr(),
                 req.getHeader("User-Agent"), Utilities.getBaseUrl(req));
 
@@ -53,7 +60,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request, HttpServletRequest req) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest req) {
         AuthService.LoginResult result = authService.login(
                 request.getEmail(),
                 request.getPassword(),
@@ -70,7 +77,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshTokenRequest request, HttpServletRequest req) {
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshTokenRequest request, HttpServletRequest req) {
         AuthService.RefreshResult result = authService.refreshToken(
                 request.refreshToken(),
                 request.clientId() != null ? request.clientId() : Config.getCpx().getAppName(),
@@ -81,19 +88,25 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<StatusResponse> logout(@AuthenticationPrincipal AuthenticatedPrincipal request,
+    public ResponseEntity<StatusResponse> logout(@AuthenticationPrincipal AuthenticatedPrincipal principal,
             HttpServletRequest req) {
-        if (request != null && request.getSessionId() != null) {
-            // tokenService.revokeSession(Long.parseLong(principal.sessionId()), null);
+        if (principal != null && principal.getSessionId() != null && !principal.getSessionId().isBlank()) {
+            try {
+                long sessionId = Long.parseLong(principal.getSessionId());
+                userService.findByPublicId(java.util.UUID.fromString(principal.getUserId()))
+                        .ifPresent(u -> tokenService.revokeSession(sessionId, u.getId()));
+            } catch (Exception e) {
+                Config.getLgr().warn("Failed to parse sessionId on logout", e);
+            }
         }
         return ResponseEntity.ok(StatusResponse.success("Logged out successfully"));
     }
 
     @PostMapping("/email/send-verification")
-    public ResponseEntity<StatusResponse> sendverification(@AuthenticationPrincipal AuthenticatedPrincipal request,
+    public ResponseEntity<StatusResponse> sendVerification(@AuthenticationPrincipal AuthenticatedPrincipal principal,
             HttpServletRequest req) {
-        if (request != null) {
-            User user = userService.findByPublicId(java.util.UUID.fromString(request.getUserId()))
+        if (principal != null) {
+            User user = userService.findByPublicId(java.util.UUID.fromString(principal.getUserId()))
                     .orElseThrow(() -> new IllegalArgumentException("User not found"));
             userService.sendEmailVerification(user, Utilities.getBaseUrl(req));
         }
@@ -111,7 +124,7 @@ public class AuthController {
     }
 
     @PostMapping("/password/forgot")
-    public ResponseEntity<StatusResponse> forgotPassword(@RequestBody ForgotPasswordRequest request,
+    public ResponseEntity<StatusResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request,
             HttpServletRequest req) {
         userService.findByEmail(request.email())
                 .ifPresent(user -> passwordService.initiatePasswordReset(user, Utilities.getBaseUrl(req)));
@@ -120,7 +133,7 @@ public class AuthController {
     }
 
     @PostMapping("/password/reset")
-    public ResponseEntity<StatusResponse> resetPassword(@RequestBody ResetPasswordRequest request,
+    public ResponseEntity<StatusResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request,
             HttpServletRequest req) {
         boolean reset = passwordService.completePasswordReset(request.token(), request.newPassword(),
                 req.getRemoteAddr(), req.getHeader("User-Agent"));

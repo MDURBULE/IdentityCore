@@ -1,19 +1,8 @@
 package com.IdentityCore.model.request;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public class RegisterRequest {
-    @NotBlank(message = "Email is required")
-    @Email(message = "Invalid email format")
-    private String email;
-
-    @NotBlank(message = "Password is required")
-    @Size(min = 8, max = 128, message = "Password must be between 8 and 128 characters")
-    private String password;
-
-    @NotBlank(message = "First name is required")
+public class UpdateProfileRequest {
     @Size(max = 100, message = "First name must not exceed 100 characters")
     private String firstName;
 
@@ -23,20 +12,16 @@ public class RegisterRequest {
     @Size(max = 32, message = "Phone number must not exceed 32 characters")
     private String phoneNumber;
 
-    public String getEmail() {
-        return email;
-    }
+    @Size(max = 512, message = "Avatar URL must not exceed 512 characters")
+    private String avatarUrl;
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    public UpdateProfileRequest() {}
 
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
+    public UpdateProfileRequest(String firstName, String lastName, String phoneNumber, String avatarUrl) {
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.phoneNumber = phoneNumber;
+        this.avatarUrl = avatarUrl;
     }
 
     public String getFirstName() {
@@ -61,5 +46,13 @@ public class RegisterRequest {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 }

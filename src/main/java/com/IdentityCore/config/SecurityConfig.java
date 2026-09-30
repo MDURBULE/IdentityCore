@@ -1,9 +1,8 @@
 package com.IdentityCore.config;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -21,8 +20,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.IdentityCore.service.Interface.TokenService;
 
-import java.io.IOException;
-import java.util.List;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
@@ -45,13 +46,17 @@ public class SecurityConfig {
                                 "/v1/auth/register",
                                 "/v1/auth/login",
                                 "/v1/auth/refresh",
-                                "/v1/auth/email/**",
+                                "/v1/auth/email/verify",
                                 "/v1/auth/password/**",
-                                "/oauth/**",
+                                "/oauth/authorize",
+                                "/oauth/token",
+                                "/oauth/revoke",
                                 "/.well-known/**",
                                 "/health",
                                 "/swagger-ui/**",
-                                "/v3/api-docs/**"
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/v3/api-docs"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
