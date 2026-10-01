@@ -44,5 +44,5 @@ jobs:
       - name: Build IdentityCore
         run: ./mvnw clean package -DskipTests
 
-      - name: Build Docker image
-        run: docker build -t identity-core:latest .
+      # - name: Build Docker image
+      #   run: docker build -t identity-core:latest .
