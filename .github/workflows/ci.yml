@@ -26,11 +26,17 @@ jobs:
           distribution: "temurin"
           cache: "maven"
 
-      - name: Make Maven wrapper executable
-        run: chmod +x ./mvnw
+      - name: Make Maven wrappers executable
+        run: |
+          chmod +x ./mvnw
+          chmod +x ./Master/mvnw
 
-      - name: Build application
+      - name: Build and install Master
+        working-directory: ./Master
+        run: ./mvnw clean install -DskipTests
+
+      - name: Build IdentityCore
         run: ./mvnw clean package -DskipTests
 
       - name: Build Docker image
-        run: docker build -t identity-core:latest .
+        run: docker build -t identity-core:latest 
