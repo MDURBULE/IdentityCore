@@ -39,7 +39,7 @@ jobs:
 
       - name: Build and install Master
         working-directory: ./Master
-        run: ./mvnw clean install -DskipTests
+        run: ./mvnw clean install -DskipTests -Dspring-boot.repackage.skip=true
 
       - name: Build IdentityCore
         run: ./mvnw clean package -DskipTests
