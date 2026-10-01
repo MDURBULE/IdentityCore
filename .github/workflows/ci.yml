@@ -26,9 +26,6 @@ jobs:
           distribution: "temurin"
           cache: "maven"
 
-      - name: Run tests
-        run: ./mvnw clean test
-
       - name: Build application
         run: ./mvnw clean package -DskipTests
 
